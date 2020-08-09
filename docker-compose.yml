@@ -1,0 +1,52 @@
+version: "3.5"
+services:
+
+  blender:
+    <<: &image
+      image: blender
+      build:
+        context: .
+        args:
+          - blender_package_name=${blender_package_name}
+          - blender_package_url=${blender_package_url}
+          - blender_path=${blender_path}
+          - blender_python_path=${blender_python_path}
+          - folder_scripts=${folder_scripts}
+      volumes:
+        - ./input:${folder_input}
+        - ./output:${folder_output}
+        - ./scripts:${folder_scripts}
+      env_file:
+        - ./.env
+
+  render:
+    container_name: blender-render
+    <<: *image
+    command: [
+      "${blender_path}/blender",              # Blender path
+      "-noaudio",                             # Specify no audio
+      "--background",                         # Run without GUI
+      "${folder_input}/${render_input_file}", # File to render, must be placed after --background
+      "--engine",                             # Rendering engine argument
+      "CYCLES",                               # Set rendering engine to Cycles
+      "--render-output",                      # Output argument
+      "${folder_output}/frame_#####",         # Output path and name
+      "--render-format",                      # Format output argument
+      "PNG",                                  # Force format output to .png
+      "--render-frame",                       # Frame argument, must be placed in last position
+      "1"                                     # Frame to render
+      ]
+  
+  script:
+    container_name: blender-script
+    <<: *image
+    command: [
+      "${blender_path}/blender",              # Blender path
+      "-noaudio",                             # Specify no audio
+      "--background",                         # Run without GUI
+      "--python",                             # Run the given Python script
+      "main.py",                              # Python script to execute
+      "--",                                   # Delimiter to indicate to Blender to stop parsing arguments
+      "--argument1",                          # Custom argument
+      "Some dummy argument value"             # Custom argument value
+      ]
